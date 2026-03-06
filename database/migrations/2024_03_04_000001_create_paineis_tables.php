@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('nome')->default('Configuração Principal');
             $table->string('vnnox_app_key');
             $table->string('vnnox_app_secret');
-            $table->string('vnnox_api_url')->default('https://api.vnnox.com');
+            $table->string('vnnox_api_url')->default('https://openapi-us.vnnox.com');
             $table->boolean('ativo')->default(true);
             $table->timestamps();
         });
@@ -82,6 +82,9 @@ return new class extends Migration
             $table->integer('nivel_acesso')->default(1)->after('celular');
             $table->enum('role', ['admin', 'moderador', 'cidadao'])->default('cidadao')->after('nivel_acesso');
             $table->boolean('ativo')->default(true)->after('role');
+            
+            // Tornar password nullable para autenticação via gov.assaí
+            $table->string('password')->nullable()->change();
         });
     }
 

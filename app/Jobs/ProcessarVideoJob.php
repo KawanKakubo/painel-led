@@ -85,6 +85,8 @@ class ProcessarVideoJob implements ShouldQueue
             $this->video->update([
                 'arquivo_processado' => $resultado['caminho'],
                 'duracao_segundos' => $resultado['duracao_segundos'] ?? $this->video->duracao_segundos,
+                'md5_hash' => md5_file($resultado['caminho']),
+                'tamanho_bytes' => filesize($resultado['caminho']),
                 'status' => 'pending' // Pronto para moderação
             ]);
 

@@ -9,12 +9,21 @@ return [
     | Credenciais e configurações para integração com a plataforma VNNOX
     | que gerencia os painéis de LED Taurus.
     |
+    | IMPORTANTE: A URL da API varia por região:
+    | - US: https://openapi-us.vnnox.com
+    | - EU: https://openapi-eu.vnnox.com
+    | - CN: https://openapi-cn.vnnox.com
+    |
+    | Rate Limits:
+    | - Máximo 15 chamadas por segundo por IP
+    | - Máximo 1500 chamadas por hora por IP
+    |
     */
 
     'vnnox' => [
         'app_key' => env('VNNOX_APP_KEY', ''),
         'app_secret' => env('VNNOX_APP_SECRET', ''),
-        'api_url' => env('VNNOX_API_URL', 'https://api.vnnox.com'),
+        'api_url' => env('VNNOX_API_URL', 'https://open-us.vnnox.com'),
     ],
 
     /*

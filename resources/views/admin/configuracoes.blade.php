@@ -71,7 +71,7 @@
                             type="url" 
                             id="vnnox_api_url" 
                             name="vnnox_api_url" 
-                            value="{{ old('vnnox_api_url', $configuracao->vnnox_api_url ?? 'https://api.vnnox.com') }}"
+                            value="{{ old('vnnox_api_url', $configuracao->vnnox_api_url ?? 'https://openapi-us.vnnox.com') }}"
                             class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="https://api.vnnox.com"
                             required

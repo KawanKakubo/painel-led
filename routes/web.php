@@ -75,6 +75,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/paineis/{painel}/status', [PainelController::class, 'verificarStatus'])->name('paineis.status');
     Route::post('/paineis/{painel}/brilho', [PainelController::class, 'ajustarBrilho'])->name('paineis.brilho');
     Route::get('/paineis/{painel}/screenshot', [PainelController::class, 'capturarScreenshot'])->name('paineis.screenshot');
+    Route::post('/paineis/{painel}/screenshot/callback', [PainelController::class, 'screenshotCallback'])->name('paineis.screenshot.callback');
+    Route::post('/paineis/{painel}/cancelar-emergencia', [PainelController::class, 'cancelarEmergencia'])->name('paineis.cancelar-emergencia');
 
     // Configurações do sistema
     Route::get('/configuracoes', [DashboardController::class, 'configuracoes'])->name('configuracoes');

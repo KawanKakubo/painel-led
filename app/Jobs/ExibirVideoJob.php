@@ -64,20 +64,41 @@ class ExibirVideoJob implements ShouldQueue
                 return;
             }
 
-            // Upload para VNNOX Cloud (se ainda não foi feito)
-            if (!$this->video->vnnox_media_id) {
-                $mediaId = $vnnoxService->uploadMidia(
-                    $caminhoArquivo,
-                    basename($caminhoArquivo)
-                );
-
-                if (!$mediaId) {
-                    Log::error("Erro ao fazer upload do vídeo para VNNOX");
-                    return;
-                }
-
-                $this->video->update(['vnnox_media_id' => $mediaId]);
+            // Gerar URL pública do arquivo
+            // IMPORTANTE: O arquivo DEVE estar acessível publicamente pela internet
+            // para que a API VNNOX possa fazer o download
+            $urlPublica = Storage::url($this->video->arquivo_processado);
+            
+            // Garantir que seja uma URL absoluta
+            if (!filter_var($urlPublica, FILTER_VALIDATE_URL)) {
+                $urlPublica = url($urlPublica);
             }
+
+            // Usar MD5 e tamanho já calculados durante o processamento
+            $md5 = $this->video->md5_hash;
+            $tamanhoBytes = $this->video->tamanho_bytes;
+
+            // Se não foram calculados antes, calcular agora
+            if (!$md5) {
+                $md5 = md5_file($caminhoArquivo);
+                Log::warning("MD5 não estava calculado para vídeo ID {$this->video->id}. Calculando agora...");
+            }
+
+            if (!$tamanhoBytes) {
+                $tamanhoBytes = filesize($caminhoArquivo);
+                Log::warning("Tamanho não estava calculado para vídeo ID {$this->video->id}. Calculando agora...");
+            }
+
+            // Obter duração em segundos
+            $duracaoSegundos = $this->video->duracao_segundos ?? 30;
+
+            Log::info("Enviando vídeo para API VNNOX", [
+                'video_id' => $this->video->id,
+                'url' => $urlPublica,
+                'md5' => $md5,
+                'size' => $tamanhoBytes,
+                'duration' => $duracaoSegundos
+            ]);
 
             // Criar registro de histórico (início)
             $historico = HistoricoExibicao::create([
@@ -86,32 +107,50 @@ class ExibirVideoJob implements ShouldQueue
                 'data_hora_inicio' => now(),
             ]);
 
-            // Inserir exibição emergencial
-            $resultado = $vnnoxService->inserirExibicaoEmergencial(
+            // Inserir exibição emergencial com URL pública
+            $resultado = $vnnoxService->inserirExibicaoEmergencialComVideo(
                 $painel->player_id,
-                $this->video->vnnox_media_id,
-                $this->video->duracao_segundos ?? 30
+                $urlPublica,
+                $md5,
+                $tamanhoBytes,
+                $duracaoSegundos,
+                [
+                    'name' => $this->video->titulo,
+                    'spotsType' => 'IMMEDIATELY',
+                    'normalProgramStatus' => 'PAUSE'
+                ]
             );
 
-            if ($resultado['success']) {
-                // Marcar vídeo como exibido
-                $this->video->marcarComoExibido();
+            if (isset($resultado['success']) && is_array($resultado['success'])) {
+                $sucesso = in_array($painel->player_id, $resultado['success']);
+                
+                if ($sucesso) {
+                    // Marcar vídeo como exibido
+                    $this->video->marcarComoExibido();
 
-                // Atualizar histórico
-                $historico->update([
-                    'data_hora_fim' => now()->addSeconds($this->video->duracao_segundos ?? 30),
-                    'exibicao_completa' => true,
-                    'observacoes' => 'Exibição enviada com sucesso'
-                ]);
+                    // Atualizar histórico
+                    $historico->update([
+                        'data_hora_fim' => now()->addSeconds($duracaoSegundos),
+                        'exibicao_completa' => true,
+                        'observacoes' => 'Exibição enviada com sucesso via API VNNOX'
+                    ]);
 
-                Log::info("Vídeo ID {$this->video->id} enviado para exibição com sucesso");
+                    Log::info("Vídeo ID {$this->video->id} enviado para exibição com sucesso");
+                } else {
+                    $historico->update([
+                        'exibicao_completa' => false,
+                        'observacoes' => 'Player na lista de falhas: ' . json_encode($resultado['fail'] ?? [])
+                    ]);
+
+                    Log::error("Player {$painel->player_id} falhou ao receber vídeo ID {$this->video->id}");
+                }
             } else {
                 $historico->update([
                     'exibicao_completa' => false,
-                    'observacoes' => 'Erro ao enviar: ' . ($resultado['message'] ?? 'Desconhecido')
+                    'observacoes' => 'Erro ao enviar: ' . ($resultado['message'] ?? 'Resposta inesperada da API')
                 ]);
 
-                Log::error("Erro ao exibir vídeo ID {$this->video->id}: " . ($resultado['message'] ?? 'Desconhecido'));
+                Log::error("Erro ao exibir vídeo ID {$this->video->id}: " . ($resultado['message'] ?? 'Resposta inesperada'));
             }
 
         } catch (\Exception $e) {

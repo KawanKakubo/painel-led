@@ -24,7 +24,8 @@ class Video extends Model
         'data_rejeicao',
         'data_exibicao',
         'duracao_segundos',
-        'vnnox_media_id',
+        'tamanho_bytes',
+        'md5_hash',
         'vezes_exibido',
     ];
 

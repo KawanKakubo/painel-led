@@ -160,13 +160,17 @@ class PainelController extends Controller
             'nivel' => 'required|integer|min:0|max:100'
         ]);
 
-        $sucesso = $this->vnnoxService->ajustarBrilho($painel->player_id, $request->nivel);
+        $resultado = $this->vnnoxService->ajustarBrilho($painel->player_id, $request->nivel);
 
-        if ($sucesso) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Brilho ajustado com sucesso'
-            ]);
+        if ($resultado !== false && isset($resultado['success'])) {
+            $sucesso = in_array($painel->player_id, $resultado['success']);
+            
+            if ($sucesso) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Brilho ajustado com sucesso'
+                ]);
+            }
         }
 
         return response()->json([
@@ -177,14 +181,91 @@ class PainelController extends Controller
 
     /**
      * Captura screenshot do que está sendo exibido
+     * NOTA: A captura é assíncrona. A imagem será enviada para o callback posteriormente.
      */
     public function capturarScreenshot(Painel $painel)
     {
-        $screenshot = $this->vnnoxService->capturarScreenshot($painel->player_id);
+        // Gera URL de callback para receber o screenshot
+        $callbackUrl = route('admin.paineis.screenshot.callback', ['painel' => $painel->id]);
+
+        $resultado = $this->vnnoxService->capturarScreenshot($painel->player_id, $callbackUrl);
+
+        if ($resultado && isset($resultado['success'])) {
+            $sucesso = in_array($painel->player_id, $resultado['success']);
+            
+            if ($sucesso) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Screenshot solicitado. Aguarde o processamento...',
+                    'async' => true
+                ]);
+            }
+        }
 
         return response()->json([
-            'success' => $screenshot !== null,
-            'screenshot' => $screenshot
+            'success' => false,
+            'message' => 'Erro ao solicitar screenshot'
+        ], 500);
+    }
+
+    /**
+     * Callback para receber screenshot da API VNNOX
+     * Rota: POST /admin/paineis/{painel}/screenshot/callback
+     */
+    public function screenshotCallback(Request $request, Painel $painel)
+    {
+        // A API VNNOX envia:
+        // {
+        //   "playerId": "xxx",
+        //   "playerTime": "2020-07-03 13:53:26",
+        //   "screenShotUrl": "https://..."
+        // }
+        
+        $playerId = $request->input('playerId');
+        $screenshotUrl = $request->input('screenShotUrl');
+        $playerTime = $request->input('playerTime');
+
+        Log::info('Screenshot recebido da API VNNOX', [
+            'painel_id' => $painel->id,
+            'player_id' => $playerId,
+            'screenshot_url' => $screenshotUrl,
+            'player_time' => $playerTime
         ]);
+
+        // Aqui você pode:
+        // 1. Fazer download da imagem do screenshotUrl
+        // 2. Armazenar localmente
+        // 3. Registrar no banco de dados
+        // 4. Notificar via websocket/evento
+
+        // Por enquanto, apenas logamos
+        // TODO: Implementar armazenamento e notificação
+
+        // A API VNNOX espera "ok" como resposta
+        return response('ok', 200);
+    }
+
+    /**
+     * Cancela exibição emergencial em um painel
+     */
+    public function cancelarEmergencia(Painel $painel)
+    {
+        $resultado = $this->vnnoxService->cancelarExibicaoEmergencial($painel->player_id);
+
+        if ($resultado !== false && isset($resultado['success'])) {
+            $sucesso = in_array($painel->player_id, $resultado['success']);
+            
+            if ($sucesso) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Exibição emergencial cancelada com sucesso'
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Erro ao cancelar exibição emergencial'
+        ], 500);
     }
 }
