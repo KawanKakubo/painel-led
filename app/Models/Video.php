@@ -27,6 +27,10 @@ class Video extends Model
         'tamanho_bytes',
         'md5_hash',
         'vezes_exibido',
+        'categoria_video',
+        'plano_segundos',
+        'semana_intencao',
+        'termo_aceito',
     ];
 
     protected $casts = [

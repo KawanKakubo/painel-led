@@ -1,259 +1,153 @@
 @extends('layouts.app')
 
-@section('title', 'Moderação de Vídeos')
+@section('title', 'Fila de Moderação')
 
 @section('content')
-<div class="mb-6">
-    <h2 class="text-3xl font-bold text-gray-800">
-        <i class="fas fa-check-circle mr-2"></i>
-        Fila de Moderação
-    </h2>
-    <p class="text-gray-600 mt-2">Aprovar ou rejeitar vídeos enviados por cidadãos</p>
-</div>
-
-<!-- Estatísticas Rápidas -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-yellow-100 border-l-4 border-yellow-500 p-6 rounded shadow">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-yellow-800 text-sm font-semibold">Aguardando Moderação</p>
-                <p class="text-3xl font-bold text-yellow-900">{{ $videos->total() }}</p>
-            </div>
-            <i class="fas fa-clock text-4xl text-yellow-400"></i>
-        </div>
+<div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div>
+        <h2 class="text-3xl font-bold text-gray-800">
+            <i class="fas fa-tasks mr-2"></i>
+            Fila de Moderação
+        </h2>
+        <p class="text-gray-600 mt-2">Analise os vídeos enviados pelos cidadãos e comerciantes</p>
     </div>
-
-    <div class="bg-green-100 border-l-4 border-green-500 p-6 rounded shadow">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-green-800 text-sm font-semibold">Aprovados por Você</p>
-                <p class="text-3xl font-bold text-green-900">
-                    {{ auth()->user()->videosModeredos()->where('status', 'approved')->count() }}
-                </p>
-            </div>
-            <i class="fas fa-check-circle text-4xl text-green-400"></i>
-        </div>
-    </div>
-
-    <div class="bg-blue-100 border-l-4 border-blue-500 p-6 rounded shadow">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-blue-800 text-sm font-semibold">Tempo Médio</p>
-                <p class="text-2xl font-bold text-blue-900">~2 min</p>
-            </div>
-            <i class="fas fa-hourglass-half text-4xl text-blue-400"></i>
-        </div>
+    
+    <!-- Filtros Técnicos -->
+    <div class="mt-4 sm:mt-0 flex gap-2">
+        <a href="{{ route('admin.moderacao.index') }}" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-sm font-medium transition {{ !request('filtro_duracao') ? 'bg-gray-800 text-white hover:bg-gray-700' : '' }}">Todos</a>
+        <a href="{{ route('admin.moderacao.index', ['filtro_duracao' => '15s']) }}" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg text-sm font-medium transition {{ request('filtro_duracao') == '15s' ? 'ring-2 ring-blue-500' : '' }}">Rotação Curta (15s)</a>
+        <a href="{{ route('admin.moderacao.index', ['filtro_duracao' => 'longos']) }}" class="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded-lg text-sm font-medium transition {{ request('filtro_duracao') == 'longos' ? 'ring-2 ring-purple-500' : '' }}">Tasks Únicas (>15s)</a>
     </div>
 </div>
 
-<!-- Lista de Vídeos Pendentes -->
-<div class="bg-white rounded-lg shadow">
-    <div class="border-b border-gray-200 p-6">
-        <div class="flex items-center justify-between">
-            <h3 class="text-xl font-bold text-gray-800">
-                Vídeos Pendentes
-            </h3>
-            <a href="{{ route('admin.moderacao.historico') }}" class="text-blue-600 hover:underline text-sm">
-                <i class="fas fa-history mr-1"></i>
-                Ver histórico completo
-            </a>
-        </div>
-    </div>
-
-    <div class="p-6">
-        @if($videos->count() > 0)
-            <div class="space-y-6">
-                @foreach($videos as $video)
-                    <div class="border rounded-lg p-6 hover:shadow-md transition">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="flex-1">
-                                <h4 class="text-xl font-bold text-gray-800 mb-2">{{ $video->titulo }}</h4>
-                                
-                                <div class="flex items-center space-x-4 text-sm text-gray-600 mb-3">
-                                    <span>
-                                        <i class="fas fa-user mr-1"></i>
-                                        {{ $video->usuario->name }}
-                                    </span>
-                                    <span>
-                                        <i class="fas fa-clock mr-1"></i>
-                                        {{ $video->created_at->format('d/m/Y H:i') }}
-                                    </span>
-                                    @if($video->duracao_formatada)
-                                        <span>
-                                            <i class="fas fa-stopwatch mr-1"></i>
-                                            {{ $video->duracao_formatada }}
-                                        </span>
-                                    @endif
-                                    @if($video->painel)
-                                        <span>
-                                            <i class="fas fa-tv mr-1"></i>
-                                            {{ $video->painel->nome }}
-                                        </span>
-                                    @endif
-                                </div>
-
-                                @if($video->descricao)
-                                    <p class="text-gray-700 mb-3">{{ $video->descricao }}</p>
-                                @endif
-
-                                <!-- Badges de Status -->
-                                <div class="flex items-center space-x-2">
-                                    @if($video->status === 'processing')
-                                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs">
-                                            <i class="fas fa-spinner fa-spin mr-1"></i> Processando
-                                        </span>
-                                    @endif
-                                    
-                                    <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs">
-                                        <i class="fas fa-id-badge mr-1"></i>
-                                        Nível {{ $video->usuario->nivel_acesso }}
-                                    </span>
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário / Tipo</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vídeo / Pré-visualização</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações (Aprovar/Reprovar)</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @forelse($videos as $video)
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        #{{ $video->id }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">{{ $video->usuario->name ?? 'Anônimo' }}</div>
+                                <div class="text-xs text-gray-500 flex flex-col">
+                                    <span class="font-bold text-indigo-600">{{ ucfirst($video->usuario->tipo_perfil ?? 'Cidadão') }}</span>
+                                    <span>{{ $video->categoria_video ?? 'Categoria: Geral' }}</span>
                                 </div>
                             </div>
-
-                            <!-- Preview de Vídeo (se houver) -->
-                            @if($video->arquivo_processado && Storage::exists($video->arquivo_processado))
-                                <div class="ml-6">
-                                    <video 
-                                        class="w-64 h-36 bg-black rounded"
-                                        controls
-                                    >
-                                        <source src="{{ Storage::url($video->arquivo_processado) }}" type="video/mp4">
-                                    </video>
-                                </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-4">
+                            <video src="{{ Storage::url($video->arquivo_processado ?? $video->arquivo_original) }}" class="h-16 w-24 object-cover bg-black rounded" controls></video>
+                            <div>
+                                <div class="text-sm text-gray-900 font-bold max-w-xs truncate">{{ $video->titulo }}</div>
+                                <a href="{{ Storage::url($video->arquivo_processado ?? $video->arquivo_original) }}" download class="text-xs text-blue-600 hover:underline flex items-center mt-1">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    Baixar Arquivo
+                                </a>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div class="flex flex-col">
+                            <span class="text-xs {{ $video->plano_segundos == 15 || $video->duracao_segundos <= 15 ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold' }}">
+                                {{ $video->plano_segundos ?? ($video->duracao_segundos ?? '60') }} segundos
+                            </span>
+                            @if($video->semana_intencao)
+                                <span class="text-xs mt-1">Semana: {{ $video->semana_intencao }}</span>
                             @endif
                         </div>
-
-                        <!-- Ações de Moderação -->
-                        <div class="border-t pt-4 mt-4">
-                            <div class="flex items-center justify-between">
-                                <a href="{{ route('admin.moderacao.show', $video) }}" 
-                                   class="text-blue-600 hover:underline text-sm">
-                                    <i class="fas fa-eye mr-1"></i>
-                                    Ver detalhes completos
-                                </a>
-
-                                <div class="flex items-center space-x-3">
-                                    <!-- Botão Rejeitar -->
-                                    <button 
-                                        onclick="openRejectModal({{ $video->id }}, '{{ $video->titulo }}')"
-                                        class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition flex items-center"
-                                    >
-                                        <i class="fas fa-times-circle mr-2"></i>
-                                        Rejeitar
-                                    </button>
-
-                                    <!-- Botão Aprovar -->
-                                    <form action="{{ route('admin.moderacao.aprovar', $video) }}" method="POST" class="inline">
-                                        @csrf
-                                        @if($video->painel_id)
-                                            <input type="hidden" name="painel_id" value="{{ $video->painel_id }}">
-                                        @else
-                                            <input type="hidden" name="painel_id" value="{{ $paineis->first()->id ?? '' }}">
-                                        @endif
-                                        <button 
-                                            type="submit"
-                                            class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition flex items-center"
-                                            onclick="return confirm('Aprovar este vídeo?')"
-                                        >
-                                            <i class="fas fa-check-circle mr-2"></i>
-                                            Aprovar
-                                        </button>
-                                    </form>
-
-                                    <!-- Botão Aprovar e Exibir -->
-                                    <form action="{{ route('admin.moderacao.aprovar', $video) }}" method="POST" class="inline">
-                                        @csrf
-                                        @if($video->painel_id)
-                                            <input type="hidden" name="painel_id" value="{{ $video->painel_id }}">
-                                        @else
-                                            <input type="hidden" name="painel_id" value="{{ $paineis->first()->id ?? '' }}">
-                                        @endif
-                                        <input type="hidden" name="exibir_agora" value="1">
-                                        <button 
-                                            type="submit"
-                                            class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition flex items-center"
-                                            onclick="return confirm('Aprovar e exibir este vídeo agora?')"
-                                        >
-                                            <i class="fas fa-play-circle mr-2"></i>
-                                            Aprovar e Exibir
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex items-center justify-end space-x-2">
+                            <!-- Botão Aprovar -->
+                            <form action="{{ route('admin.moderacao.aprovar', $video) }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded inline-flex items-center text-xs font-bold transition">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    Aprovar
+                                </button>
+                            </form>
+                            
+                            <!-- Botão Reprovar (Abre Modal/Prompt) -->
+                            <button type="button" onclick="openRejectModal({{ $video->id }})" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded inline-flex items-center text-xs font-bold transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                Reprovar
+                            </button>
                         </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <!-- Paginação -->
-            <div class="mt-6">
-                {{ $videos->links() }}
-            </div>
-        @else
-            <div class="text-center py-12 text-gray-500">
-                <i class="fas fa-check-circle text-6xl text-green-400 mb-4"></i>
-                <p class="text-xl font-semibold">Nenhum vídeo pendente!</p>
-                <p class="text-sm mt-2">Todos os vídeos foram moderados.</p>
-            </div>
-        @endif
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                        <div class="flex flex-col justify-center items-center">
+                            <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <p class="text-lg">Nenhum vídeo pendente na fila.</p>
+                            <p class="text-sm mt-1">A curadoria está em dia!</p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+    
+    <div class="px-6 py-4">
+        {{ $videos->links() }}
     </div>
 </div>
 
-<!-- Modal de Rejeição -->
-<div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
-        <div class="border-b border-gray-200 p-6">
-            <h3 class="text-xl font-bold text-gray-800">Rejeitar Vídeo</h3>
-        </div>
-        <form id="rejectForm" method="POST">
+<!-- Reject Modal (Escondido) -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-2xl">
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <svg class="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            Motivo da Reprovação
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">Escolha ou digite o motivo. Isso será enviado como feedback automático para o usuário.</p>
+        
+        <form id="rejectForm" method="POST" action="">
             @csrf
-            <div class="p-6">
-                <p class="text-gray-700 mb-4" id="rejectVideoTitle"></p>
-                
-                <label for="motivo" class="block text-gray-700 font-semibold mb-2">
-                    Motivo da Rejeição *
-                </label>
-                <textarea 
-                    id="motivo" 
-                    name="motivo" 
-                    rows="4"
-                    class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Explique por que este vídeo não pode ser exibido..."
-                    required
-                ></textarea>
+            <div class="mb-4">
+                <select id="quickReasons" class="w-full px-3 py-2 border rounded-md mb-2 text-sm focus:ring-red-500 focus:border-red-500" onchange="document.getElementById('motivo_rejeicao').value = this.value">
+                    <option value="">Selecione um motivo comum...</option>
+                    <option value="Qualidade de áudio ou vídeo ruim">Qualidade de áudio ou vídeo ruim</option>
+                    <option value="Conteúdo impróprio ou não autorizado">Conteúdo impróprio ou ofensivo</option>
+                    <option value="Tempo de duração excedido na edição">Tempo estourado</option>
+                    <option value="Problemas com Direitos Autorais na música">Problemas de Direitos Autorais (Música)</option>
+                </select>
+                <textarea name="motivo" id="motivo_rejeicao" rows="3" class="w-full px-3 py-2 border rounded-md text-sm focus:ring-red-500 focus:border-red-500" placeholder="Ou digite o motivo detalhado..." required></textarea>
             </div>
-            <div class="border-t border-gray-200 p-6 flex items-center justify-end space-x-3">
-                <button 
-                    type="button"
-                    onclick="closeRejectModal()"
-                    class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition"
-                >
-                    Cancelar
-                </button>
-                <button 
-                    type="submit"
-                    class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition"
-                >
-                    Confirmar Rejeição
-                </button>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="closeRejectModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Cancelar</button>
+                <button type="submit" class="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-md font-bold">Confirmar Reprovação</button>
             </div>
         </form>
     </div>
 </div>
-@endsection
 
-@push('scripts')
 <script>
-    function openRejectModal(videoId, videoTitle) {
+    function openRejectModal(videoId) {
         document.getElementById('rejectModal').classList.remove('hidden');
-        document.getElementById('rejectVideoTitle').textContent = 'Rejeitando: ' + videoTitle;
-        document.getElementById('rejectForm').action = `/admin/moderacao/${videoId}/rejeitar`;
+        // Atualiza action do form
+        document.getElementById('rejectForm').action = "/admin/moderacao/" + videoId + "/rejeitar";
+        document.getElementById('motivo_rejeicao').value = "";
+        document.getElementById('quickReasons').value = "";
     }
-
+    
     function closeRejectModal() {
         document.getElementById('rejectModal').classList.add('hidden');
-        document.getElementById('motivo').value = '';
     }
 </script>
-@endpush
+@endsection

@@ -16,7 +16,11 @@ class DashboardController extends Controller
     public function cidadao()
     {
         $user = auth()->user();
-        
+
+        if (!$user->perfil_completo) {
+            return redirect()->route('cidadao.perfil.completar');
+        }
+
         $estatisticas = [
             'total_videos' => Video::doUsuario($user->id)->count(),
             'pendentes' => Video::doUsuario($user->id)->where('status', 'pending')->count(),

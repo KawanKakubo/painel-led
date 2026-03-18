@@ -42,7 +42,10 @@ class VideoController extends Controller
             'titulo' => 'required|string|max:255',
             'descricao' => 'nullable|string|max:1000',
             'video' => 'required|file|mimes:mp4,mov,avi,mkv|max:512000', // 500MB
-            'painel_id' => 'nullable|exists:paineis,id'
+            'painel_id' => 'nullable|exists:paineis,id',
+            'categoria_video' => 'nullable|string',
+            'plano_segundos' => 'nullable|integer|in:15,30,60',
+            'semana_intencao' => 'nullable|string',
         ]);
 
         // Salvar arquivo original
@@ -55,7 +58,11 @@ class VideoController extends Controller
             'titulo' => $request->titulo,
             'descricao' => $request->descricao,
             'arquivo_original' => $arquivoOriginal,
-            'status' => 'processing'
+            'status' => 'processing',
+            'categoria_video' => $request->categoria_video,
+            'plano_segundos' => $request->plano_segundos,
+            'semana_intencao' => $request->semana_intencao,
+            'termo_aceito' => true
         ]);
 
         // Disparar job de processamento

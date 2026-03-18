@@ -13,10 +13,10 @@ use App\Http\Controllers\PainelController;
 |--------------------------------------------------------------------------
 */
 
-// Página inicial redireciona para login
+// PÃ¡gina inicial
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    return view('welcome');
+})->name('home');
 
 // Autenticação gov.assaí
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -33,6 +33,10 @@ Route::post('/check-cpf', [AuthController::class, 'checkCpf'])->name('check.cpf'
 */
 
 Route::middleware(['auth'])->prefix('cidadao')->name('cidadao.')->group(function () {
+    // Perfilamento
+    Route::get('/perfil/completar', [App\Http\Controllers\PerfilController::class, 'completar'])->name('perfil.completar');
+    Route::post('/perfil/completar', [App\Http\Controllers\PerfilController::class, 'salvar'])->name('perfil.salvar');
+
     // Dashboard do cidadão
     Route::get('/dashboard', [DashboardController::class, 'cidadao'])->name('dashboard');
 

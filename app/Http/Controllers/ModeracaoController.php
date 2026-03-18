@@ -12,12 +12,19 @@ class ModeracaoController extends Controller
     /**
      * Lista vídeos pendentes de moderação
      */
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
-        $videos = Video::pendentes()
-            ->with(['usuario', 'painel'])
-            ->orderBy('created_at', 'asc')
-            ->paginate(15);
+        $query = Video::pendentes()->with(['usuario', 'painel'])->orderBy('created_at', 'asc');
+
+        if ($request->has('filtro_duracao')) {
+            if ($request->filtro_duracao == '15s') {
+                $query->where('plano_segundos', 15)->orWhere('duracao_segundos', '<=', 15);
+            } elseif ($request->filtro_duracao == 'longos') {
+                $query->where('plano_segundos', '>', 15)->orWhere('duracao_segundos', '>', 15);
+            }
+        }
+
+        $videos = $query->paginate(15);
 
         return view('admin.moderacao.index', compact('videos'));
     }
@@ -39,10 +46,12 @@ class ModeracaoController extends Controller
     public function aprovar(Request $request, Video $video)
     {
         $request->validate([
-            'painel_id' => 'required|exists:paineis,id'
+            'painel_id' => 'nullable|exists:paineis,id'
         ]);
 
-        $video->aprovar(auth()->id(), $request->painel_id);
+        $painelId = $request->painel_id ?? $video->painel_id ?? \App\Models\Painel::first()?->id;
+
+        $video->aprovar(auth()->id(), $painelId);
 
         // Exibir imediatamente se solicitado
         if ($request->has('exibir_agora')) {

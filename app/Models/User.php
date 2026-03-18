@@ -27,6 +27,12 @@ class User extends Authenticatable
         'nivel_acesso',
         'role',
         'ativo',
+        'tipo_perfil',
+        'cnpj',
+        'nome_empresa',
+        'ramo_atividade',
+        'bairro',
+        'perfil_completo',
     ];
 
     /**
